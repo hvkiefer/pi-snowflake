@@ -78,15 +78,34 @@ are fallbacks after all specific settings. `SNOWFLAKE_OPENAI_API` and
 is saved globally and can be masked by a higher-priority setting.
 
 The `.pi-snowflake-settings.json` file is discovered by searching the current
-directory and then its parent directories, up to and including `$HOME`, and
-stopping at the first match. Outside `$HOME`, only the current directory is
-searched. This custom file is **disabled by default** because it does not
-trigger Pi's project trust prompt. After reviewing the exact file, set
-`SNOWFLAKE_PROJECT_SETTINGS_FILE` to its absolute path. Only that file is
-approved; a different or nearer file is ignored. The file is also ignored if
-Pi marks the project untrusted. Project `.pi/settings.json` remains
-subject to Pi's own trust decision. The custom file uses the same `{ "snowflake": { ... } }`
-shape as `settings.json`:
+directory and its parents, stopping at the first match. Within `$HOME`, the
+search stops at `$HOME`. Outside `$HOME`, it stops at the filesystem root.
+This custom file is **disabled by default** because it does not trigger Pi's
+project trust prompt. To opt in to parent searches, add this setting to
+`~/.pi/agent/settings.json`:
+
+```json
+{
+  "snowflake": {
+    "allow-settings-from-parent-directories": true
+  }
+}
+```
+
+Only the global setting enables this behavior. It accepts the nearest file even
+when Pi does not trust the project, including during early model registration.
+Review parent settings files before enabling it: they can select connections,
+models, and other Snowflake options. This permission applies in every directory
+where you run Pi. Project `.pi/settings.json` remains subject to Pi's own trust
+decision, and project model defaults are still applied only when Pi trusts the
+project.
+
+Alternatively, leave the setting disabled and set
+`SNOWFLAKE_PROJECT_SETTINGS_FILE` to the absolute path of the exact file you
+approve. This alternative also requires Pi to trust the project.
+
+The custom file uses the same `{ "snowflake": { ... } }` shape as
+`settings.json`:
 
 ```json
 {

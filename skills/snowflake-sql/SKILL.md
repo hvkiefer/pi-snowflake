@@ -130,14 +130,19 @@ variables (e.g. `SNOWFLAKE_SQL_CONNECTION`), a `.pi-snowflake-settings.json`
 file, `.pi/settings.json` in the current project, then the global
 `settings.json`.
 
-The `.pi-snowflake-settings.json` file is discovered by searching the current
-directory and then its parent directories, up to and including `$HOME`,
-stopping at the first match. Outside `$HOME`, only the current directory is
-searched. The custom file is disabled unless the operator sets
-`SNOWFLAKE_PROJECT_SETTINGS_FILE` to its absolute path after reviewing it,
-and Pi trusts the project. Only that exact nearest file is approved. It does
-not itself trigger Pi's trust prompt. It uses the same `{ "snowflake": { ... } }`
-shape as `settings.json`:
+The `.pi-snowflake-settings.json` file is disabled by default. To enable
+parent-directory discovery, the operator can set
+`"allow-settings-from-parent-directories": true` inside `"snowflake"` in
+`~/.pi/agent/settings.json`. Only the global setting grants this permission.
+It accepts the nearest file even when Pi does not trust the project. Such
+files can change the selected connection and model, so review them before
+using Pi. Within `$HOME` the search stops at `$HOME`; elsewhere it stops at
+the filesystem root.
+
+Alternatively, the operator can set `SNOWFLAKE_PROJECT_SETTINGS_FILE` to the
+absolute path of the exact nearest file they approved. This alternative also
+requires Pi to trust the project. The file does not itself trigger Pi's trust
+prompt. It uses the same `{ "snowflake": { ... } }` shape as `settings.json`:
 
 ```json
 {

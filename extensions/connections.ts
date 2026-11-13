@@ -31,17 +31,16 @@ const PROJECT_SETTINGS_FILENAME = ".pi-snowflake-settings.json";
 
 /**
  * Find the nearest .pi-snowflake-settings.json, searching from `cwd` upward
- * through parent directories, stopping after $HOME (inclusive). Returns
- * undefined if no such file exists.
+ * through parent directories. Within $HOME, stop at $HOME (inclusive);
+ * outside $HOME, stop at the filesystem root. Returns undefined if absent.
  */
 export function findProjectSettingsFile(cwd: string): string | undefined {
   const home = os.homedir();
   let dir = path.resolve(cwd);
-  const withinHome = dir === home || dir.startsWith(home + path.sep);
   for (;;) {
     const candidate = path.join(dir, PROJECT_SETTINGS_FILENAME);
     if (fs.existsSync(candidate)) return candidate;
-    if (dir === home || !withinHome) return undefined;
+    if (dir === home) return undefined;
     const parent = path.dirname(dir);
     if (parent === dir) return undefined;
     dir = parent;
@@ -166,14 +165,16 @@ const DEFAULT_MODELS = [
 export function loadSettings(cwd: string, projectTrusted = true): SnowflakeSettings {
   const globalFile = globalSettingsFile();
   const projectPiFile = path.join(cwd, ".pi", "settings.json");
-  // Pi does not prompt for this filename. The operator must explicitly name
-  // the exact nearest file they approved, in addition to Pi project trust.
-  const approvedFile = process.env.SNOWFLAKE_PROJECT_SETTINGS_FILE;
-  const candidate = projectTrusted && approvedFile && path.isAbsolute(approvedFile)
-    ? findProjectSettingsFile(cwd) : undefined;
-  const dotSnowflakeFile = candidate && candidate === path.resolve(approvedFile!) ? candidate : undefined;
-
   const gRaw = readJson(globalFile);
+  // Only global settings can enable unrestricted parent-directory discovery.
+  // This is an explicit opt-in even when Pi does not trust project settings.
+  const allowParents = gRaw.snowflake?.["allow-settings-from-parent-directories"] === true;
+  const approvedFile = process.env.SNOWFLAKE_PROJECT_SETTINGS_FILE;
+  const candidate = allowParents || (projectTrusted && approvedFile && path.isAbsolute(approvedFile))
+    ? findProjectSettingsFile(cwd) : undefined;
+  const dotSnowflakeFile = candidate && (allowParents || candidate === path.resolve(approvedFile!))
+    ? candidate : undefined;
+
   const pRaw = projectTrusted ? readJson(projectPiFile) : {};
   const dRaw = dotSnowflakeFile ? readJson(dotSnowflakeFile) : {};
 

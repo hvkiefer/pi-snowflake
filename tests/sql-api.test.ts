@@ -85,6 +85,56 @@ test("untrusted project settings are ignored", (t) => {
   assert.equal(loadSettings(project, false).sqlConnection, undefined);
 });
 
+test("only the global boolean opt-in permits parent settings without project trust", (t) => {
+  const { home } = fixture(t);
+  const previous = process.env.SNOWFLAKE_PROJECT_SETTINGS_FILE;
+  delete process.env.SNOWFLAKE_PROJECT_SETTINGS_FILE;
+  t.after(() => {
+    if (previous === undefined) delete process.env.SNOWFLAKE_PROJECT_SETTINGS_FILE;
+    else process.env.SNOWFLAKE_PROJECT_SETTINGS_FILE = previous;
+  });
+  const repo = path.join(home, "repo");
+  const cwd = path.join(repo, "nested");
+  const global = path.join(home, ".pi", "agent", "settings.json");
+  const project = path.join(cwd, ".pi", "settings.json");
+  const ancestor = path.join(repo, ".pi-snowflake-settings.json");
+  const nearest = path.join(cwd, ".pi-snowflake-settings.json");
+  const save = (file, value) => {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(value));
+  };
+  save(ancestor, { snowflake: { sqlConnection: "ancestor", "allow-settings-from-parent-directories": true } });
+  save(project, { snowflake: { "allow-settings-from-parent-directories": true } });
+  assert.equal(loadSettings(cwd, true).sqlConnection, undefined);
+  for (const value of [false, "true", 1, null]) {
+    save(global, { snowflake: { "allow-settings-from-parent-directories": value } });
+    assert.equal(loadSettings(cwd, true).sqlConnection, undefined);
+  }
+  save(global, { snowflake: { "allow-settings-from-parent-directories": true } });
+  assert.equal(loadSettings(cwd, false).sqlConnection, "ancestor");
+  assert.equal(loadSettings(cwd, false).sqlConnectionSource, ancestor);
+  save(nearest, { snowflake: { sqlConnection: "nearest" } });
+  assert.equal(loadSettings(cwd, true).sqlConnection, "nearest");
+  fs.unlinkSync(nearest);
+  assert.equal(loadSettings(cwd, true).sqlConnection, "ancestor");
+  save(global, { snowflake: { "allow-settings-from-parent-directories": false } });
+  assert.equal(loadSettings(cwd, true).sqlConnection, undefined);
+});
+
+test("parent discovery outside home walks to the filesystem root", (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "pi-snowflake-home-"));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "pi-snowflake-outside-"));
+  t.mock.method(os, "homedir", () => home);
+  t.after(() => { fs.rmSync(home, { recursive: true, force: true }); fs.rmSync(outside, { recursive: true, force: true }); });
+  const cwd = path.join(outside, "nested");
+  fs.mkdirSync(cwd);
+  const global = path.join(home, ".pi", "agent", "settings.json");
+  fs.mkdirSync(path.dirname(global), { recursive: true });
+  fs.writeFileSync(global, JSON.stringify({ snowflake: { "allow-settings-from-parent-directories": true } }));
+  fs.writeFileSync(path.join(outside, ".pi-snowflake-settings.json"), JSON.stringify({ snowflake: { sqlConnection: "outside" } }));
+  assert.equal(loadSettings(cwd, true).sqlConnection, "outside");
+});
+
 test("persist creates settings and refuses to overwrite malformed JSON", (t) => {
   const { home } = fixture(t);
   persistConnection("sql", "example");

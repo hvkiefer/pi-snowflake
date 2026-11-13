@@ -55,3 +55,38 @@ test("Pi loads the package and registers a provider without shelling out with th
   assert.match(selected.messages[0].message, /higher-priority setting/);
   assert.match(selected.messages[1].message, /invalid settings/);
 });
+
+test("global opt-in loads parent settings before model selection", (t) => {
+  const pi = process.env.PI_BIN;
+  if (!pi) return t.skip("Set PI_BIN to the Pi executable to run this integration test");
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "pi-snowflake-parent-"));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const cwd = path.join(home, "workspace", "nested");
+  const tokenFile = path.join(home, "test.token");
+  fs.mkdirSync(cwd, { recursive: true });
+  fs.mkdirSync(path.join(home, ".snowflake"));
+  fs.writeFileSync(tokenFile, "fake-token");
+  fs.writeFileSync(path.join(home, ".snowflake", "connections.toml"), `[test]\naccount = "ORG_ACCOUNT"\ntoken_file_path = "${tokenFile}"\n`);
+  fs.writeFileSync(path.join(home, "workspace", ".pi-snowflake-settings.json"), JSON.stringify({
+    defaultProvider: "snowflake", defaultModel: "claude-test",
+    snowflake: { llmConnection: "test", models: ["claude-test"] },
+  }));
+  const globalFile = path.join(home, ".pi", "agent", "settings.json");
+  fs.mkdirSync(path.dirname(globalFile), { recursive: true });
+  const env = { PATH: process.env.PATH, HOME: home, PI_CODING_AGENT_DIR: path.join(home, "agent"), PI_OFFLINE: "1" };
+  const args = ["--offline", "--no-extensions", "--no-skills", "--no-context-files", "--extension", process.cwd(), "--list-models", "snowflake"];
+  const before = spawnSync(pi, args, { cwd, env, encoding: "utf8", timeout: 30000 });
+  assert.equal(before.status, 0, before.stderr);
+  assert.doesNotMatch(before.stdout, /claude-test/);
+  fs.writeFileSync(globalFile, JSON.stringify({ snowflake: { "allow-settings-from-parent-directories": true } }));
+  const after = spawnSync(pi, args, { cwd, env, encoding: "utf8", timeout: 30000 });
+  assert.equal(after.status, 0, after.stderr);
+  assert.match(after.stdout, /claude-test/);
+  const rpc = spawnSync(pi, ["--offline", "--approve", "--no-extensions", "--no-skills", "--no-context-files", "--no-mcp", "--extension", process.cwd(), "--mode", "rpc", "--no-session"], {
+    cwd, env, input: '{"type":"get_state"}\n', encoding: "utf8", timeout: 30000,
+  });
+  assert.equal(rpc.status, 0, rpc.stderr);
+  const state = rpc.stdout.split("\n").filter(Boolean).map((line) => JSON.parse(line)).find((item) => item.type === "response" && item.command === "get_state");
+  assert.equal(state?.data?.model?.provider, "snowflake");
+  assert.equal(state?.data?.model?.id, "claude-test");
+});
