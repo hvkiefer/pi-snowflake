@@ -18,16 +18,26 @@ See `skills/snowflake-sql/SKILL.md` for full usage and configuration details.
 ## Install
 
 Requires Pi with the `@earendil-works` extension APIs (tested against Pi 1.5.2)
-and Node.js 22.19 or newer. From a checkout:
+and Node.js 22.19 or newer. Install from GitHub:
+
+```bash
+pi install git:github.com/hvkiefer/pi-snowflake
+```
+
+To update the package later, run:
+
+```bash
+pi update git:github.com/hvkiefer/pi-snowflake
+```
+
+For local development, install from a checkout instead:
 
 ```bash
 pi install ./pi-snowflake
 ```
 
-Once published, use `pi install npm:pi-snowflake` or install from the public Git repository. This package has not been published by this repository.
-
 If you already use a local copy of this extension, remove that package from Pi
-before installing this one to avoid registering it twice.
+before installing the GitHub version to avoid registering it twice.
 
 ## Configure
 
