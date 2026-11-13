@@ -103,21 +103,23 @@ test("only the global boolean opt-in permits parent settings without project tru
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, JSON.stringify(value));
   };
-  save(ancestor, { snowflake: { sqlConnection: "ancestor", "allow-settings-from-parent-directories": true } });
-  save(project, { snowflake: { "allow-settings-from-parent-directories": true } });
+  save(ancestor, { snowflake: { sqlConnection: "ancestor", allowSettingsFromParentDirectories: true } });
+  save(project, { snowflake: { allowSettingsFromParentDirectories: true } });
+  assert.equal(loadSettings(cwd, true).sqlConnection, undefined);
+  save(global, { snowflake: { "allow-settings-from-parent-directories": true } });
   assert.equal(loadSettings(cwd, true).sqlConnection, undefined);
   for (const value of [false, "true", 1, null]) {
-    save(global, { snowflake: { "allow-settings-from-parent-directories": value } });
+    save(global, { snowflake: { allowSettingsFromParentDirectories: value } });
     assert.equal(loadSettings(cwd, true).sqlConnection, undefined);
   }
-  save(global, { snowflake: { "allow-settings-from-parent-directories": true } });
+  save(global, { snowflake: { allowSettingsFromParentDirectories: true } });
   assert.equal(loadSettings(cwd, false).sqlConnection, "ancestor");
   assert.equal(loadSettings(cwd, false).sqlConnectionSource, ancestor);
   save(nearest, { snowflake: { sqlConnection: "nearest" } });
   assert.equal(loadSettings(cwd, true).sqlConnection, "nearest");
   fs.unlinkSync(nearest);
   assert.equal(loadSettings(cwd, true).sqlConnection, "ancestor");
-  save(global, { snowflake: { "allow-settings-from-parent-directories": false } });
+  save(global, { snowflake: { allowSettingsFromParentDirectories: false } });
   assert.equal(loadSettings(cwd, true).sqlConnection, undefined);
 });
 
@@ -130,7 +132,7 @@ test("parent discovery outside home walks to the filesystem root", (t) => {
   fs.mkdirSync(cwd);
   const global = path.join(home, ".pi", "agent", "settings.json");
   fs.mkdirSync(path.dirname(global), { recursive: true });
-  fs.writeFileSync(global, JSON.stringify({ snowflake: { "allow-settings-from-parent-directories": true } }));
+  fs.writeFileSync(global, JSON.stringify({ snowflake: { allowSettingsFromParentDirectories: true } }));
   fs.writeFileSync(path.join(outside, ".pi-snowflake-settings.json"), JSON.stringify({ snowflake: { sqlConnection: "outside" } }));
   assert.equal(loadSettings(cwd, true).sqlConnection, "outside");
 });

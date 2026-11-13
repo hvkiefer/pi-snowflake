@@ -97,10 +97,13 @@ project trust prompt. To opt in to parent searches, add this setting to
 ```json
 {
   "snowflake": {
-    "allow-settings-from-parent-directories": true
+    "allowSettingsFromParentDirectories": true
   }
 }
 ```
+
+If you used the previous `allow-settings-from-parent-directories` key, rename it
+in your global settings; the old key is no longer recognized.
 
 Only the global setting enables this behavior. It accepts the nearest file even
 when Pi does not trust the project, including during early model registration.

@@ -78,7 +78,7 @@ test("global opt-in loads parent settings before model selection", (t) => {
   const before = spawnSync(pi, args, { cwd, env, encoding: "utf8", timeout: 30000 });
   assert.equal(before.status, 0, before.stderr);
   assert.doesNotMatch(before.stdout, /claude-test/);
-  fs.writeFileSync(globalFile, JSON.stringify({ snowflake: { "allow-settings-from-parent-directories": true } }));
+  fs.writeFileSync(globalFile, JSON.stringify({ snowflake: { allowSettingsFromParentDirectories: true } }));
   const after = spawnSync(pi, args, { cwd, env, encoding: "utf8", timeout: 30000 });
   assert.equal(after.status, 0, after.stderr);
   assert.match(after.stdout, /claude-test/);

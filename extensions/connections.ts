@@ -168,7 +168,7 @@ export function loadSettings(cwd: string, projectTrusted = true): SnowflakeSetti
   const gRaw = readJson(globalFile);
   // Only global settings can enable unrestricted parent-directory discovery.
   // This is an explicit opt-in even when Pi does not trust project settings.
-  const allowParents = gRaw.snowflake?.["allow-settings-from-parent-directories"] === true;
+  const allowParents = gRaw.snowflake?.allowSettingsFromParentDirectories === true;
   const approvedFile = process.env.SNOWFLAKE_PROJECT_SETTINGS_FILE;
   const candidate = allowParents || (projectTrusted && approvedFile && path.isAbsolute(approvedFile))
     ? findProjectSettingsFile(cwd) : undefined;

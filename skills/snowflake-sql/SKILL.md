@@ -132,7 +132,7 @@ file, `.pi/settings.json` in the current project, then the global
 
 The `.pi-snowflake-settings.json` file is disabled by default. To enable
 parent-directory discovery, the operator can set
-`"allow-settings-from-parent-directories": true` inside `"snowflake"` in
+`"allowSettingsFromParentDirectories": true` inside `"snowflake"` in
 `~/.pi/agent/settings.json`. Only the global setting grants this permission.
 It accepts the nearest file even when Pi does not trust the project. Such
 files can change the selected connection and model, so review them before
