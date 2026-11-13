@@ -1,0 +1,8 @@
+node_modules/
+*.tgz
+coverage/
+.pi/
+.pi-snowflake-settings.json
+.env
+.env.*
+*.token
